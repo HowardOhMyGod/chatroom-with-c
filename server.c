@@ -1,3 +1,7 @@
+/* This program run on Mac OS*/
+/* Unlike Windows system, it use unix file descriptor to create socket*/
+/* which is an int value*/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>    //strlen
@@ -29,6 +33,7 @@ Connection * con_table[MAX_CONN];
 // server socker descriptor
 int server_sock;
 
+// total alive connections
 int con_count = 0;
 
 // handle SIGINT keyboard interrupt
@@ -41,10 +46,12 @@ void sig_handler(int signo)
   }
 }
 
+// hash client sock for table index
 int hash(int client_sock){
     return client_sock % MAX_CONN;
 }
 
+// set connection table's elements to NULL
 void init_table(void){
     for(int i = 0; i < MAX_CONN; i++){
         con_table[i] = NULL;
@@ -69,6 +76,7 @@ void insert(int client_sock, char *ip, int port){
     con_table[hash_index] = this;
 }
 
+// search element in table
 Connection * search(int client_sock){
     int search_count = 0, hash_index = hash(client_sock);
 
@@ -89,6 +97,7 @@ Connection * search(int client_sock){
     return NULL;
 }
 
+// set disconnect connection to NULL
 void delete(int client_sock){
     int hash_index = hash(client_sock);
 
@@ -103,6 +112,7 @@ void delete(int client_sock){
     }
 }
 
+// show all connections in table
 void show(void){
     puts("-----Connections Pool-----");
     for(int i = 0; i < MAX_CONN; i++){
@@ -139,7 +149,7 @@ void accept_client(void *arg){
     }
     //**************end***********************//
 
-    // create thread to accept
+    // create thread to accept if alive connections is less than MAX_CONN
     if(con_count < MAX_CONN - 1){
         pthread_create(&new_thread, NULL, accept_client, (void *) "*");
     }
@@ -170,6 +180,7 @@ void accept_client(void *arg){
         }
     }
 
+    //*****Handle Client Disconnect*********//
     if(read_size == 0){
         printf("- %s:%d disconnect -\n", client_ip, client_port);
         fflush(stdout);
@@ -178,7 +189,7 @@ void accept_client(void *arg){
         delete(client_sock);
         show();
 
-        // time to server another connection when decreace from MAX_CONN
+        // time to server another connection when decrease from MAX_CONN
         if(con_count == MAX_CONN){
             pthread_create(&new_thread, NULL, accept_client, (void *) "*");
         }
@@ -187,6 +198,9 @@ void accept_client(void *arg){
         // terminate thread
         pthread_exit(NULL);
     }
+    //**************end*********************//
+
+    //********recv error********************//
     else if(read_size == -1){
         perror("recv");
 
@@ -234,11 +248,12 @@ int main(int argc , char *argv[])
     //Listen
     listen(server_sock , 3);
 
+    // catch signal
     if (signal(SIGINT, sig_handler) == SIG_ERR) {
         printf("\ncan't catch SIGINT\n");
     }
 
-    //Accept and incoming connection
+    //Accept incoming connection
     puts("- Waiting for incoming connections... -");
 
     //accept connection from an incoming client

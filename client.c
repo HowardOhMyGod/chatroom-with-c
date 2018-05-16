@@ -1,3 +1,7 @@
+/* This program run on Mac OS*/
+/* Unlike Windows system, it use unix file descriptor to create socket*/
+/* which is an int value*/
+
 #include<stdio.h> //printf
 #include<string.h>    //strlen
 #include<sys/socket.h>    //socket
@@ -7,6 +11,7 @@
 #include <unistd.h>
 #include <signal.h>
 
+// Msg format send between clients and server
 typedef struct {
     char name[10];
     char msg[1024];
@@ -23,6 +28,8 @@ void sig_handler(int signo)
   }
 }
 
+/*A thread to continuesly receive stdin
+and send Msg to server*/
 void get_msg(void *arg){
     Msg msg;
     int s_len;
@@ -74,7 +81,7 @@ int main(int argc , char *argv[]){
 
     puts("-----Chatroom Connected-----");
 
-    //keep communicatin with server
+    //create thread to receive from stdin
     pthread_create(&new_thread, NULL, get_msg, (void *)"*");
 
     // keep receiving msg from server
