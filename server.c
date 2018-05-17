@@ -100,12 +100,17 @@ Connection * search(int client_sock){
 // set disconnect connection to NULL
 void delete(int client_sock){
     int hash_index = hash(client_sock);
+    int search_count = 0;
 
-    while(con_table[hash_index] != NULL){
-        if(con_table[hash_index] -> client_sock == client_sock){
-            con_table[hash_index] = NULL;
+    while(search_count < MAX_CONN){
+        if(con_table[hash_index] != NULL && con_table[hash_index] -> client_sock == client_sock){
+            printf("-----index: %d\n-----", hash_index);
             free(con_table[hash_index]);
+            con_table[hash_index] = NULL;
+            break;
         }
+
+        search_count++;
 
         hash_index++;
         hash_index %= MAX_CONN;
@@ -183,7 +188,6 @@ void accept_client(void *arg){
     //*****Handle Client Disconnect*********//
     if(read_size == 0){
         printf("- %s:%d disconnect -\n", client_ip, client_port);
-        fflush(stdout);
 
         // clear this connection
         delete(client_sock);
